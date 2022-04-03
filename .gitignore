@@ -1,0 +1,9 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+
+aqi_daily_1980_to_2021.csv
+city_temperature.csv
+WeatherEvents_Jan2016-Dec2021.csv
+pollution_2000_2021.csv
