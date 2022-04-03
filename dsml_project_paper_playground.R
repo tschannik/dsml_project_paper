@@ -64,10 +64,15 @@ air_quality_index <- read_csv("aqi_daily_1980_to_2021.csv")
 #pollution_data_2017 %>% distinct(State)
 #weather_states = weather_events_2017 %>% distinct(State)
 
+weather_events = weather_events %>% 
+  rename(start_time = `StartTime(UTC)`, end_time = `EndTime(UTC)`, Precipitation_inches = `Precipitation(in)`)
+
+## select data from state of texas
 weather_events_texas <- weather_events %>% filter(State == "TX")
 pullution_data_texas <- pollution_data %>% filter(State == "Texas")
 city_temps_texas <- city_temps %>% filter(State == "Texas")
 air_quality_index_texas <- air_quality_index %>% filter(`State Name` == "Texas")
+
 
 # --- analyse
 weather_events_types = weather_events %>% distinct(Type)
@@ -78,20 +83,20 @@ aqi_mean = air_quality_index %>%
   summarise(aqi_mean = mean(AQI))
 
 weather_events_texas_by_month = weather_events_texas %>% 
-  group_by(month_year = my(paste(month(ymd_hms(`StartTime(UTC)`)), year(ymd_hms(`StartTime(UTC)`)), sep="-"))) %>% 
+  group_by(month_year = my(paste(month(ymd_hms(start_time)), year(ymd_hms(start_time)), sep="-"))) %>% 
   summarise(sum = sum(`Precipitation(in)`), n = n())
 
 weather_events_texas_by_month = weather_events_texas %>% 
-  group_by(month_year = my(paste(month(ymd_hms(`StartTime(UTC)`)), year(ymd_hms(`StartTime(UTC)`)), sep="-"))) %>% 
+  group_by(month_year = my(paste(month(ymd_hms(start_time)), year(ymd_hms(start_time)), sep="-"))) %>% 
   summarise(sum = sum(`Precipitation(in)`), n = n())
 
 weather_events_texas_by_month_and_type = weather_events_texas %>% 
-  group_by(month_year = my(paste(month(ymd_hms(`StartTime(UTC)`)), year(ymd_hms(`StartTime(UTC)`)), sep="-")), Type) %>% 
+  group_by(month_year = my(paste(month(ymd_hms(start_time)), year(ymd_hms(start_time)), sep="-")), Type) %>% 
   summarise(sum = sum(`Precipitation(in)`), n = n())
 
 weather_events_texas_by_year = weather_events_texas %>% 
-  group_by(year = year(ymd_hms(`StartTime(UTC)`))) %>% 
-  summarise(sum = sum(`Precipitation(in)`), n = n())
+  group_by(year = year(ymd_hms(start_time))) %>% 
+  summarise(sum = sum(Precipitation_inches), n = n())
 
 city_temps_texas_average_by_month <- city_temps_texas %>% 
   group_by(month_year = my(paste(Month, Year, sep="-"))) %>%
