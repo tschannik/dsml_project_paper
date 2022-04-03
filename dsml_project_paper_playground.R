@@ -51,9 +51,13 @@ library(ggplot2)
 # --- setup environment
 
 # --- read input
+# https://www.kaggle.com/datasets/sobhanmoosavi/us-weather-events
 weather_events <- read_csv("WeatherEvents_Jan2016-Dec2021.csv")
+# https://www.kaggle.com/datasets/sogun3/uspollution
 pollution_data <- read_csv("pollution_2000_2021.csv")
+# https://www.kaggle.com/datasets/sudalairajkumar/daily-temperature-of-major-cities
 city_temps <- read_csv("city_temperature.csv")
+# https://www.kaggle.com/datasets/threnjen/40-years-of-air-quality-index-from-the-epa-daily
 air_quality_index <- read_csv("aqi_daily_1980_to_2021.csv")
 
 # --- preprocess
