@@ -16,12 +16,34 @@ text_var = 1
 ```
 
 \newpage
-
 <!-- https://bookdown.org/yihui/rmarkdown-cookbook/figure-placement.html -->
+
+# Einleitung
+
+Im Rahmen des Moduls Data Science and Machine Learning DSML werden die Studierenden der Berner Fachhochschule dazu angehalten eine empirische Arbeit auf dem Gebiet der Datenanalyse oder des maschinellen Lernens unter Verwendung von R oder Python zu erarbeiten.
+
+Die Autoren haben sich für zwei verschiedene Datensets entschieden. Zum einen repräsentiert das erste Datenset die US-Wetterereignisse zwischen den Jahren 2016 bis 2021 und das zweite Datenset die US-Umweltverschmutzung zwischen den Jahren 2000 bis 2021. Die Autoren möchten in der folgenden Arbeit herausfinden, ob es einen Zusammenhang zwischen der Wirkung des Wetters und der Umweltverschmutzung gibt. Um die Analyse einzugrenzen, werden nur die Staaten Texas, California, und New York analysiert. Es wurden Hypothesen/Fragen am Anfang aufgestellt, welche anschliessend durch die importierten Datensätze auf deren Richtigkeit überprüft wurden.
+
+# Data Source und Datasets
+
+## US Pollution
+
+## US Weather Events
+
+## Global Air Quality Index (AQI)
+
+## Temperature of Major Cities
 
 # Analyse
 
-## R Markdown
+# Resultate und Diskussion 
+
+# Fazit
+
+\section*{Literaturverzeichnis}
+
+\section*{Selbstständigkeitserklärung}
+
 
 This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
