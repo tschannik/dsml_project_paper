@@ -1,19 +1,40 @@
 ---
-title: "DSML Project Paper"
-author:
-- Iris Lüthi
-- Maja Velkova
-- Yannik Zimmermann
+title: "\\vspace{1in}DSML Project Paper"
+subtitle: "Semesterarbeit \n DSML - SS 2022"
+#date: "`r format(Sys.time(), ' %d. %B %Y')`\\vspace{1in}"
 output: 
   pdf_document: 
-    toc: yes
+    toc: no
     number_sections: true
+header-includes: |
+  \usepackage[german]{babel}
+  \usepackage{fancyhdr}
+  \pagestyle{fancy}
+  \fancyfoot{}
+  \lfoot{10 Juni 2022}
+  \rfoot{Seite \thepage}
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-source("dsml_project_paper_playground.R", local = knitr::knit_global())
+# source("dsml_project_paper_playground.R", local = knitr::knit_global())
 ```
+
+```{=tex}
+\vspace*{\fill}
+\begin{center}
+\begin{tabular}{ l l }
+ Studenten & Iris Lüthi, Maja Velkova, Yannik Zimmermann \\ 
+ Dozenten & M. Krebs, P. Collovà\\  
+ Modul & DSML \\
+ Semester & 6. Semester\\
+ Datum & \date{\today}
+\end{tabular}
+\end{center}
+```
+\newpage
+
+\tableofcontents
 
 \newpage
 
@@ -23,7 +44,7 @@ source("dsml_project_paper_playground.R", local = knitr::knit_global())
 
 Im Rahmen des Moduls Data Science and Machine Learning DSML werden die Studierenden der Berner Fachhochschule dazu angehalten eine empirische Arbeit auf dem Gebiet der Datenanalyse oder des maschinellen Lernens unter Verwendung von R oder Python zu erarbeiten.
 
-Die Autoren haben sich für zwei verschiedene Datensets entschieden. Zum einen repräsentiert das erste Datenset die US-Wetterereignisse zwischen den Jahren 2016 bis 2021 und das zweite Datenset die US-Umweltverschmutzung zwischen den Jahren 2000 bis 2021. Die Autoren möchten in der folgenden Arbeit herausfinden, ob es einen Zusammenhang zwischen der Wirkung des Wetters und der Umweltverschmutzung gibt. Um die Analyse einzugrenzen, werden nur die Staaten Texas, California, und New York analysiert. Es wurden Hypothesen/Fragen am Anfang aufgestellt, welche anschliessend durch die importierten Datensätze auf deren Richtigkeit überprüft wurden.
+Das Autorenteam hat sich für vier verschiedene Datensets mit ähnlichem Kontext entschieden. In der folgenden Arbeit will das Autorenteam mithilfe der Datensets herausfinden, ob es einen Zusammenhang zwischen der weltweiten Temperaturentwicklung und der Luftzusammensetzung von verschiedenen Gasen gibt. Hierfür werden erst die weltweiten Veränderungen der Temperaturen analysiert, worauf eine genauere Analyse Temperatur, Luftqualität und Gas-Zusammensetzung der USA durchgeführt wird. Auf die Analyse der Datensets folgt die Anwendung von ML-Algorithmen auf die Daten, um eine Vorhersage für die Luftqualität und die Temperaturentwicklung zu treffen. Schlussendlich werden die Ergebnisse von dem Autorenteam zusammengefasst, woraufhin ein persönliches Fazit folgt.
 
 # Data Source und Datasets
 
@@ -49,8 +70,8 @@ This is an R Markdown document. Markdown is a simple formatting syntax for autho
 
 When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
-```{r cars}
-autoplot(model_from_timeseries_aqi)
+```{r cars, fig.cap = "Gemessene Durchschnittstemperatur in Grossstädten rund um die Erde", fig.align = 'center', out.width = "25%"}
+# plot
 ```
 
 ## Including Plots
