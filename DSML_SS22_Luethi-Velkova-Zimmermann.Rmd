@@ -1,0 +1,762 @@
+---
+title: "\\vspace{1in}DSML Project Paper"
+subtitle: "Semesterarbeit \n DSML - SS 2022"
+output: 
+  pdf_document: 
+    toc: no
+    number_sections: true
+header-includes: |
+  \usepackage[german]{babel}
+  \usepackage{fancyhdr}
+  \pagestyle{fancy}
+  \fancyfoot{}
+  \lhead{I. Lüthi, M. Velkova, Y. Zimmermann}
+  \rhead{}
+  \lfoot{10 Juni 2022}
+  \rfoot{Seite \thepage}
+  \usepackage{float}
+  \floatplacement{figure}{H}
+  \usepackage{tocloft}
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source("DSML_SS22_Luethi-Velkova-Zimmermann_Setup.R", local = knitr::knit_global())
+```
+
+```{=tex}
+\vspace*{\fill}
+\begin{center}
+\begin{tabular}{ l l }
+ Studenten & Iris Lüthi, Maja Velkova, Yannik Zimmermann \\ 
+ Dozenten & Prof. Dr. M. Krebs, Prof. Dr. P. Collovà\\  
+ Modul & DSML \\
+ Semester & 6. Semester\\
+ Datum & \date{\today}
+\end{tabular}
+\end{center}
+```
+\newpage
+
+\tableofcontents
+
+\newpage
+
+<!-- https://bookdown.org/yihui/rmarkdown-cookbook/figure-placement.html -->
+
+# Einleitung
+
+Im Rahmen des Moduls Data Science and Machine Learning (DSML) werden die
+Studierenden der Berner Fachhochschule dazu angehalten eine empirische
+Arbeit auf dem Gebiet der Datenanalyse oder des maschinellen Lernens
+unter Verwendung von R oder Python zu erarbeiten.
+
+Das Autorenteam hat sich dazu entschieden, die Entwicklung der globalen
+Lufttemperaturen, des AQI (Air Quality Index) und der möglichen
+Einflüsse durch Treibhausgase zu untersuchen. Hierfür wurden drei
+Datasets ausgewählt, welche eine solche Analyse ermöglichen sollen.
+Zuerst wurden die weltweiten Veränderungen der Temperaturen analysiert.
+Darauf wurde eine fokussierte Analyse der Temperatur, Luftqualität und
+der anteiligen Zusammensetzung der Treibhausgase basierend auf
+amerikanischen Messungen durchgeführt. Auf die Analyse der Datasets
+folgt die Anwendung von ML-Algorithmen auf die Daten, um eine Vorhersage
+für die Luftqualität und die Temperaturentwicklung zu treffen. Ziel der
+Analyse und der Vorhersage ist es, anhand von Daten feststellen zu
+können, ob die Aussagen der Wissenschaft und den Medien in Bezug auf den
+Klimawandel durch Studenten nachgewiesen werden kann. Schlussendlich
+werden die Ergebnisse vom Autorenteam zusammengefasst und diskutiert,
+woraufhin ein Fazit folgt.
+
+# Data Source, Datasets und Code
+
+Alle Datasets, die im Rahmen dieser Semesterarbeit genutzt werden,
+wurden auf der Plattform Kaggle veröffentlicht. Die Plattform bietet
+über 50'000 öffentliche Datasets. Diese können dabei direkt in
+Online-Notebooks analysiert werden. Kaggle bietet nebenbei einige Kurse
+zur Datenanalyse mithilfe verschiedenster Tools und Programmiersprachen.
+Im Anschluss an die Aufschlüsselung der verwendeten Datasets wird der
+Codeaufbau dieser Arbeit erläutert.
+
+## Dataset "Daily Temperature of Major Cities"
+
+Das "Daily Temperature of Major Cities" Dataset besteht aus acht Spalten
+und 2,9 Millionen Zeilen. Es wurde zuletzt vor etwa zwei Jahren
+aktualisiert. In der originalen Datenstruktur sind folgende Spalten
+enthalten:
+
+-   Region
+-   Country
+-   State
+-   City
+-   Day
+-   Month
+-   Year
+-   AvgTemperature
+
+Mithilfe des folgenden Befehls lässt sich herausfinden, wie viele Zeilen
+identisch sind. In diesem Dataset sind insgesamt 20'715 identisch und
+müssen daher vor der weiteren Verarbeitung gefiltert werden.
+
+``` r
+sum(duplicated(raw_city_temps)) 
+```
+
+Bei der Untersuchung des Datasets stellte sich heraus, dass sich einige
+der Temperaturwerte unterhalb von -90° Fahrenheit befinden. Aufgrund der
+unrealistischen Werte werden diese Zeilen für die weitere Analyse
+entfernt. Des Weiteren befinden sich mögliche Tippfehler in der
+Datenerhebung, da Temperaturwerte für die Jahre 200 und 201 erfasst
+wurden. Diese Werte werden ebenfalls gefiltert. Zuletzt wurden die Werte
+aus dem Jahr 2020 entfernt, da die Datenerfassung für dieses Jahr nicht
+abgeschlossen wurde. Die Bereinigung wurde mithilfe des folgenden
+Befehls vorgenommen:
+
+``` r
+# Data preprocessing for further analysis
+city_temps = raw_city_temps %>% 
+  # remove duplicates
+  distinct() %>% 
+  # remove temp values below -50f because they seem like default/null values
+  filter(AvgTemperature > -50) %>% 
+  # remove values where year is below 1950 because those are probably typos (200, etc)
+  filter(Year > 1950) %>% 
+  # remove year 2020 because of really low number of observations
+  filter(Year != 2020)
+```
+
+Um die Temperaturwerte einfach interpretieren zu können, wurden diese in
+das Format Grad-Celsius transformiert. Für die Umwandlung wurde die
+Library «weathermetrics» verwendet. Diese bietet den Befehl
+«fahrenheit.to.celsius», welcher wie folgt angewendet wurde.
+
+``` r
+city_temps['AvgTemperatureInCelcius'] = fahrenheit.to.celsius(city_temps$AvgTemperature)
+```
+
+In der abschliessenden Struktur wurde somit lediglich die Spalte
+«AvgTemperatureInCelcius» ergänzt.
+
+## Dataset "Global Air Quality Index (AQI)"
+
+Das "Global Air Quality Index (AQI)" Dataset besteht aus täglichen
+Messungen des AQI aus verschiedenen Städten der USA. Es besteht aus
+insgesamt acht Spalten und über zehn Millionen Zeilen und ist damit das
+grösste Dataset dieser Semesterarbeit. Das Dataset wurde zuletzt im
+Oktober 2021 aktualisiert. Folgende Spalten sind im Dataset enthalten:
+
+-   State Name
+-   Date
+-   AQI
+-   Category
+-   Defining Parameter
+-   Latitude
+-   Longitude
+-   Country Name
+
+Auch dieses Dataset wurde auf sich wiederholende Werte untersucht. Es
+wurden jedoch nur einzigartige Messungen festgestellt. Mithilfe des
+«unique» Befehls wurden die möglichen Werte für die Kategorie und den
+definierenden Parameter festgestellt. Der AQI wird in die Kategorien
+«Good», «Moderate», «Unhealthy for Sensitive Groups», «Unhealthy», «Very
+Unhealthy» und Hazardous eingeteilt. Die definierenden Paramater
+bestehen aus «Ozone», «PM2.5», «PM10», «NO2», «CO» und «SO2».
+
+``` r
+unique(raw_air_quality_index$`Defining Parameter`)
+unique(raw_air_quality_index$Category)
+```
+
+Aufgrund der guten Datenqualität wurden lediglich die Messwerte des
+Jahres 2021 entfernt, da diese unvollständig sind. Somit hat sich die
+Struktur des Datasets für die Analyse nicht verändert. Insgesamt wurden
+40'283 von 10'158'517 Zeilen entfernt.
+
+``` r
+air_quality_index = raw_air_quality_index %>% 
+  filter(year(Date) != 2021)
+```
+
+## Dataset "US Pollution"
+
+Das "US Pollution" Dataset besteht aus Messungen von
+Treibhausgas-Anteilen in den USA. Es besteht aus 24 Spalten und über
+600'000 Zeilen. Das Dataset wurde zuletzt vor 6 Jahren aktualisiert.
+Nachfolgend sind die relevanten Spalten aufgelistet. Einige der Spalten
+wurden aufgrund der Leserlichkeit nicht aufgelistet. Diese bestehen aus
+den Minimal- und Maximalwerten der Treibhausgase gemessen pro Stunde.
+
+-   Date
+-   Year
+-   Month
+-   Day
+-   State
+-   Country
+-   City
+-   O3 Mean
+-   NO2 Mean
+-   CO Mean
+-   SO2 Mean
+
+Im «US Pollution» Dataset wurden ebenfalls 1479 identische Messungen
+festgestellt. Zudem wurde die Datenerfassung für das Jahr 2021 nicht
+abgeschlossen. Das finale Dataset unterscheidet sich strukturell nicht
+vom originalen Dataset. Diese Werte wurden darauffolgend mit folgendem
+Befehl entfernt:
+
+``` r
+pollution_data = raw_pollution_data %>% 
+  # remove duplicates
+  distinct() %>%
+  # remove measurements from 2021
+  filter(year(Date) != 2021)
+```
+
+## Bedenken über die Datasets
+
+Die Datasets wurden auf Kaggle nur sehr minimal beschrieben.
+Dementsprechend finden sich kaum Infos darüber, wie die Daten erhoben
+wurden. Dadurch fehlen dem Autorenteam Informationen über die Methodik
+der Datenerfassung. Da die Datenerfassung über einen längeren Zeitraum
+durchgeführt wurde, besteht auch die Möglichkeit, dass sich die
+Messmethode geändert hat. Durch die fehlenden Informationen über die
+Methodik können daher keine Aussage über mögliche Messfehler oder
+Messveränderungen getroffen werden.
+
+Bei den Daten aus den «US Pollution» Dataset handelt es sich bereits um
+ein verarbeitetes Dataset, bei welchem die originalen Messwerte auf
+Tagesdurchschnitte umgerechnet wurden. Die nachfolgende Analyse nutzt
+teilweise Durchschnittswerte, wodurch die Daten weiter vereinfacht
+werden. Mögliche Trends könnten dadurch verzerrt wahrgenommen werden.
+
+Laut der Beschreibung der Datasets wurden diese entweder durch die
+Universität von Dayton oder durch die EPA (Environmental Protection
+Agency) zur Verfügung gestellt. Welche Transformationen oder
+Veränderungen der originalen Daten vorgenommen wurde, ist nicht
+dokumentiert und öffnet die Tür für potenzielle Verfälschungen.
+
+## Aufbau und Code der Arbeit
+
+Die Semesterarbeit wurde mithilfe eines RMarkdown-Files erstellt. Dies
+bietet den Vorteil, dass der Code und das resultierende Dokument in
+einem File erfasst werden können. Das Grundsetup für das RMarkdown-File
+wurde aufgrund der Lesbarkeit in ein eigenes Setup File verlagert. Für
+die initiale Analyse wurde ein eigenes File namens
+«DSML_SS22_Luethi-Velkova-Zimmermann.R» erstellt, in welchem die
+Datasets durch einen iterativen Prozess analysiert und transformiert
+wurden. So konnten Versuche und Codebausteine, welche nicht im finalen
+Dokument genutzt wurden, trotzdem erhalten bleiben. Das R-Projekt
+besteht somit aus nachfolgender Filestruktur:
+
+-   DSML_SS22_Luethi-Velkova-Zimmermann.Rmd
+-   DSML_SS22_Luethi-Velkova-Zimmermann.R
+-   DSML_SS22_Luethi-Velkova-Zimmermann_Setup.R
+-   DSML_SS22_Luethi-Velkova-Zimmermann.Rproj
+-   DSML_SS22_Luethi-Velkova-Zimmermann.pdf
+
+# Analyse
+
+In diesem Kapitel werden die Untersuchungen und Resultate aus den
+Datensätzen dargestellt. Wie in der Einleitung erwähnt, wird zuerst die
+Temperaturentwicklung, weiter die Luftqualität, allfällige Prognosen und
+zum Schluss einen möglichen Zusammenhang zwischen den beiden Aspekten
+untersucht.
+
+## Temperaturverlauf von 1995 - 2020
+
+Alle folgenden Grafiken wurden mithilfe der Library "ggplot2" generiert.
+Um eine einfache Lesbarkeit zu gewährleisten wird der Code nur von der
+folgenden Grafik im Dokument angezeigt. Alle weiteren Grafiken wurden
+mit dem selben Prinzip erstellt.
+
+```{r Temperaturverlauf, echo=TRUE, fig.align='center', fig.cap="Temperatur Entwicklung von 1995 - 2020", out.width="68%"}
+city_temps %>%
+  # Apply plot based filters
+  group_by(Year) %>%
+  # Summarize certain values
+  summarize_at(vars(AvgTemperatureInCelsius), list(AvgTemp=mean)) %>%
+  # Generate ggplot
+  ggplot(aes(Year,AvgTemp)) + 
+  geom_smooth(method = 'loess', formula = 'y ~ x') + 
+  geom_line() +
+  # Define custom descriptions for x, y and title
+  labs(
+    x="Jahr", 
+    y="Durchschnittstemperatur in Celsius", 
+    title = "Gemessene Durchschnittstemperatur in Grossstädten rund um die Erde"
+  ) + 
+  theme(aspect.ratio = 0.7)
+```
+
+Die erste Grafik wurde mit den veröffentlichten Temperaturwerten aus
+verschiedenen Grossstädten aus dem Dataset «Daily Temperature of Major
+Cities» generiert. Darauf ist die Entwicklung der weltweiten
+Durchschnitttemperaturen zwischen den Jahren 1995 bis 2020 ersichtlich.
+Es ist ein klar aufsteigender Trend zu erkennen. Jedoch ist zu beachten,
+dass die y -- Achse eine Skala zwischen 14.5 und 17.0 Grad Celsius
+aufweist. Daher wird die Kurve drastischer angezeigt als bei einer
+grösseren Skala. Hätte die y-Achse beispielweise eine Skala zwischen 0
+und 30 Grad, würde der Unterschied optisch geringer ausfallen. Die
+schwarze Linie zeigt die weltweiten Durchschnittstemperaturen der Jahre
+1995-2020 an. Anhand dieser, ist zu erkennen, dass nicht jedes Jahr
+pauschal wärmer ist als das vorherige, sondern dass es Schwankungen
+zwischen den verschiedenen Jahren gibt. Die blaue Linie stellt den Trend
+der Temperaturänderungen dar. Obwohl also Schwankungen zwischen den
+Jahren zu sehen sind, zeigt der Trend eine klare Temperaturzunahme auf.
+Bei dieser Grafik ist wichtig mitzunehmen, dass die durchschnittliche
+weltweite Temperatur in 25 Jahren um ca. ein Grad Celsius erhöht hat. Da
+es sich bei der ersten Grafik, um den weltweiten Durchschnitt handelt,
+hat sich das Autorenteam die Frage gestellt, ob alle Kontinente den
+gleichen Trend aufweisen.
+
+```{r Regiontemperaturverlauf, echo=FALSE, fig.align='center', fig.cap="Durchschnittstemperaturen pro Kontinent bzw. Region", out.width="75%"}
+city_temps %>% 
+  group_by(Year, Region) %>%
+  summarise_at(vars(AvgTemperatureInCelsius), list(AvgTemp=mean)) %>%
+  ggplot(aes(Year, AvgTemp, group=Region, color=Region)) + 
+  geom_line() + 
+  geom_smooth(method='loess', formula = 'y ~ x') +
+  scale_colour_manual(values=color_palette) +
+  labs(
+    x="Jahr", 
+    y="Durchschnittstemperatur in Celsius", 
+    title = "Gemessene Durchschnittstemperatur in Grossstädten gruppiert nach Kontinenten"
+  ) + 
+  theme(aspect.ratio = 1)
+```
+
+In der zweiten Grafik werden die durchschnittlichen Temperaturänderungen
+auf die Kontinente aufgeschlüsselt. Der allgemeine Trend ist, wie
+bereits in der ersten Grafik, auch hier zunehmend. Interessant zu sehen
+ist, dass nicht alle Kontinente beziehungsweise Regionen gleich stark
+von der Erwärmung betroffen sind. Die dunkelblaue Trendlinie von Nord
+Amerika ist stärker geneigt als die orange Linie der asiatischen Region.
+Auch wurde die Region Nord Amerika grösseren Temperaturschwankungen über
+die Jahre ausgestellt als die asiatischen Regionen. Der Nahe Osten ist
+deutlich am stärksten von den Temperaturerwärmungen betroffen. Um den
+Umfang der Analyse weiter einzuschränken, hat sich das Autorenteam im
+weiterführenden Teil dieser Arbeit auf den Amerikanischen
+beziehungsweise Nordamerikanischen Kontinent konzentriert.
+
+```{r TemperatureNordAmerica, echo=FALSE, fig.align='center', fig.cap="Durchschnittstemperaturen von Nordamerika", out.width="65%"}
+city_temps %>%
+  filter(Region == 'North America') %>%
+  group_by(Year) %>%
+  summarise_at(vars(AvgTemperatureInCelsius), list(AvgTemp=mean)) %>%
+  ggplot(aes(Year,AvgTemp)) + 
+  geom_line() + 
+  geom_smooth(method = 'loess', formula = 'y ~ x') +
+  labs(
+    x="Jahr", 
+    y="Durchschnittstemperatur in Celsius", 
+    title = "Verlauf der gemessenen Durchschnittstemperatur in Nord Amerika"
+    ) + 
+  theme(aspect.ratio = 0.7)
+```
+
+In der oben aufgeführten Grafik ist die Durchschnittstemperatur der
+Nordamerikanischen Staaten isoliert ersichtlich. Die Temperaturskala
+wurde verkleinert und die Zeitskala wurde analog den vorherigen Grafiken
+beibehalten. Hier ist nochmals ersichtlich, wie stark die
+Temperaturschwankungen in der oberen Hälfte des amerikanischen
+Kontinents ausfallen. Zudem ist auffallend, dass wie bei den weltweiten
+Temperaturen, die Durchschnittstemperaturen in Nordamerika um mindestens
+ein Grad Celsius gestiegen sind.
+
+Im nächsten Kapitel wird der Umfang wiederum auf die USA reduziert. Für
+diese sind Datasets für die Luftqualität und Verteilung der
+Treibhausgase verfügbar. Das Ziel des Autorenteam ist es mit Hilfe
+dieser Datasets herauszufinden, ob in den Daten der Luftqualität und der
+Verteilung der Treibhausgase eine mögliche Ursache für die stetige
+Temperaturerwärmung zu finden ist.
+
+## Luftqualität und Verteilung der Treibhausgase der USA
+
+In einem ersten Schritt wird in diesem Kapitel die allgemeine
+Luftqualität in ganz Amerika aufgezeigt. Weiter wird die
+durchschnittliche Luftqualität der USA indexiert dargestellt. Der Air
+Quality Index (AQI) dient der U.S. amerikanischen Regierung, um die
+gemessene Luftqualität zu kategorisieren. In der folgenden Abbildung
+wird die Indexierung detailliert erläutert (airnow.gov, k.A.).
+
+```{r aqi-table, echo=FALSE, fig.align = 'center', out.width = "90%", fig.cap = "Air Quality Index der U.S. Environmental Protection Agency"}
+knitr::include_graphics(here::here("AQI_Table.png"))
+```
+
+Daraus ist zu entnehmen, dass höhere Werte des Indexes eine entsprechend
+schlechtere Luftqualität darstellen. Die gleichen Kategorien sind im
+untenstehenden Graph in Bezug auf die Beschriftung wieder zu erkennen.
+
+```{r AqiCategory, echo=FALSE, fig.align='center', fig.cap="Luftqualitätsmessungen aufgeteilt in Kategorien", out.width="65%"}
+air_quality_index %>%
+  group_by(Category, Year = year(Date)) %>%
+  count() %>%
+  ggplot(aes(Year, n, group=Category, color=Category)) + 
+  geom_line() +
+  labs(
+    x="Jahr", 
+    y="Anzahl Messungen", 
+    title = "Anzahl Messungen des AQI gruppiert nach Kategorie"
+  ) +
+  theme(aspect.ratio = 1)
+```
+
+Zu den Stufen «Very Unhealthy», «Unhealthy», «Unhealthy for Sensitive
+Groups» und «Hazardous» gibt es über die aufgezeigten 40 Jahre wenig bis
+kaum Messungen. Diese sind zudem abnehmend. Die Stufe «Moderate» kommt
+nach einer kurzen Schwankung wieder auf ihren Ausgangswert zurück. Im
+Gegenteil steigt die Kategorie «Good» nahezu konstant an. Wichtig zu
+beachten ist es, dass die Anzahl der Messpunkte über die Jahre
+zugenommen haben. Trotz dieser Zunahme zeigt der Graph eine klare
+Verbesserung der Luftqualität. In der nächsten Grafik wird der
+durchschnittliche AQI visuell dargestellt.
+
+```{r AqiMean, echo=FALSE, fig.align='center', fig.cap="Durchschnitt des Luftqualität Index", out.width="65%"}
+air_quality_index %>%
+  group_by(Year = year(Date)) %>%
+  summarize_at(vars(AQI), list(m=mean)) %>%
+  ggplot(aes(Year, m)) +
+  geom_line() + 
+  geom_smooth(method = 'loess', formula = 'y ~ x') +
+  labs(
+    x="Jahr", 
+    y="Durchnittlicher AQI", 
+    title = "Verlauf des Durchschnitt-AQI's"
+  ) +
+  theme(aspect.ratio = 0.7)
+```
+
+Trotz starken Schwankungen in den Messungen des AQI, ist eine klare und
+konstante Abwärtsbewegung festzustellen. Der durchschnittliche AQI hat
+sich demnach zwischen 1980 und 2020 von ca. 60 auf ca. 40 abgesenkt.
+Aufgrund der Grösse der USA kann vermutet werden, dass die
+Durchschnittswerte des AQI nicht landesweit gleich sind. Aufgrund dessen
+werden die oben dargestellten Durchschnittswerte als nächstes auf die
+verschiedenen Staaten der USA verteilt dargestellt.
+
+```{r AqiMap, echo=FALSE, fig.align='center', fig.cap="AQI Luftqualitätsskala der USA", out.width="65%"}
+plot_usmap(data=map_data_aqi_mean, values="AQI_m") +
+  scale_fill_continuous(name= "AQI", low=primary_color, high=secondary_color) +
+  theme(legend.position = "right") + 
+  labs(title = "AQI Durchschnittswerte aufgeteilt in amerikanische Staaten") 
+```
+
+Wie unter der Abbildung vier erwähnt, zeigen tiefe AQI Werte eine
+bessere Luftqualität auf als hohe Werte. In der aufgeführten Karte der
+USA ist sichtbar, dass Kalifornien und Arizona bei der Luftqualität am
+schlechtesten abschneiden. Tendenziell weisen die nordischen Staaten
+einen besseren AQI Wert auf als die südlichen. Dabei kann beachtet
+werden, dass Kalifornien, der am stärksten bevölkerte Staat der USA ist.
+Dies im Gegenteil zu Arizona, welcher weit weniger Menschen beherbergt.
+Möglichweise könnte hier eine Korrelation bestehen. Um die Erkenntnisse
+aus der Karte zu verdeutlichen, werden die AQI von zwei Staaten
+individuell angeschaut und verglichen.
+
+```{r PollutionCal, echo=FALSE, fig.align='center', fig.show="hold", fig.cap="Gasanteile in der Luft: Kalifornien vs Maine", out.width="46%"}
+pollution_data %>% 
+  filter(State == "California") %>% 
+  #filter(State == "New Jersey") %>% 
+  group_by(Year) %>%
+  summarize_at(vars(`O3 Mean`, `CO Mean`, `SO2 Mean`, `NO2 Mean`), list(m=mean)) %>%
+  ggplot() +
+  geom_smooth(aes(Year,`O3 Mean_m`, color="O3 Durchschnitt"), method = 'loess', formula = 'y ~ x') +
+  geom_smooth(aes(Year,`CO Mean_m`, color="CO Durchschnitt"), method = 'loess', formula = 'y ~ x') +
+  geom_smooth(aes(Year,`SO2 Mean_m`, color="SO2 Durchschnitt"), method = 'loess', formula = 'y ~ x') +
+  geom_smooth(aes(Year,`NO2 Mean_m`, color="NO2 Durchschnitt"), method = 'loess', formula = 'y ~ x') +
+  labs(
+    x="Jahr", 
+    y="Gasanteile in der Luft", 
+    color="Gas", 
+    title = "Durchschnittliche Verteilung der Gase in der Luft - Kalifornien (Dichtbesiedelt)"
+  ) + 
+  theme(aspect.ratio = 0.7)
+
+  pollution_data %>% 
+  filter(State == "Maine") %>% 
+  #filter(State == "North Dakota") %>%
+  group_by(Year) %>%
+  summarize_at(vars(`O3 Mean`, `CO Mean`, `SO2 Mean`, `NO2 Mean`), list(m=mean)) %>%
+  ggplot() +
+  geom_smooth(aes(Year,`O3 Mean_m`, color="O3 Durchschnitt"), method = 'loess', formula = 'y ~ x') +
+  geom_smooth(aes(Year,`CO Mean_m`, color="CO Durchschnitt"), method = 'loess', formula = 'y ~ x') +
+  geom_smooth(aes(Year,`SO2 Mean_m`, color="SO2 Durchschnitt"), method = 'loess', formula = 'y ~ x') +
+  geom_smooth(aes(Year,`NO2 Mean_m`, color="NO2 Durchschnitt"), method = 'loess', formula = 'y ~ x') +
+  labs(
+    x="Jahr", 
+    y="Gasanteile in der Luft", 
+    color="Gas", 
+    title = "Durchschnittliche Verteilung der Gase in der Luft - Maine (Wenigbesiedelt)"
+  ) + 
+  theme(aspect.ratio = 0.7)
+```
+
+In der linken Grafik ist die durchschnittliche prozentuale Verteilung
+einer Auswahl an Treibhausgasen vom kalifornischen Staat ersichtlich.
+Auf den ersten Blick, kann festgestellt werden, dass die anteiligen
+Stickstoffdioxidwerte (NO2) in den letzten zwanzig Jahre abgenommen
+haben. Der Anteil an Schwefeldioxid (SO2) und Kohlenstoffmonoxid (CO)
+hat, zwar weniger deutlich, aber dennoch abgenommen. Die Ozonwerte (O3)
+bleiben auf oder knapp über Null eine Konstante. Trotz dem allgemeinen
+Abwärtstrend werden durch die hohen Anteile an Treibhausgasen in der
+Luft, die Erkenntnisse der vorherigen Abbildung bestätigt. Kalifornien
+hat entsprechend sehr hohe Anteile an Treibhausgase in der Luft.
+
+In der rechten Grafik sind die Werte eines weniger dicht besiedelten
+Staates zu sehen. In Maine wurde der Anteil der Gase von sieben Prozent
+im angezeigten Zeitraum nie überschritten. Da die Skala auf der Y-Achse
+deutlich kleiner ist, sind auch stärkere Schwankungen beim Stickstoff-
+und dem Schwefeldioxid festzustellen. Im Allgemeinen konnte jedoch
+festgestellt werden, dass Maine einen tieferen Anteil an Treibhausgasen
+in der Luft aufweist.
+
+## Vorhersagen zur Temperatur & Luftqualität
+
+Die analysierten Daten zeigen, dass der AQI abnimmt und die Temperatur
+zunimmt. Aufgrund dessen wird in folgendem Abschnitt mithilfe von
+Machine Learning Algorithmen und der Library «forecast» versucht eine
+Vorhersage der Temperatur und Luftqualität über die nächsten zehn Jahre
+zu treffen. Die Vorhersagen werden mit einem «Confident-Level» von 95
+durchgeführt. Als Datengrundlage werden alle Daten aus dem «Daily
+Temperature of Major Cities» und dem «Global Air Quality Index (AQI)»
+Dataset genutzt. Die Library «forecast» wird aufgrund der einfachen
+Handhabung genutzt. Mithilfe einer sog. «Time-Series», einem speziellen
+Format, und unter Anwendung des «ARIMA (Auto-Regressive Integrated
+Moving Average)»-Modells werden die Daten auf den Trend, die saisonalen
+Veränderungen und die übrigen Messwerte aufgeteilt und analysiert.
+
+### Vorhersage der Temperaturentwicklung
+
+```{r Forecast1, echo=FALSE, fig.align='center', fig.cap="Prognostizierter Temperaturverlauf Weltweit für die nächsten 10 Jahren", out.width="65%"}
+autoplot(city_temps_forecast_year) + 
+  labs(
+    x="Jahr (Beginn der Messung in 1995)", 
+    y="Durchschnittstemperatur in Celsius", 
+    title = "Prognostizierter Temperaturverlauf Weltweit für die nächsten 10 Jahre"
+  ) 
+```
+
+Die obenstehende Grafik zeigt den prognostizierten Temperaturverlauf für
+die nächsten 10 Jahre. Dabei ist zu erkennen, dass die Temperatur um
+etwa ein weiteres Grad steigen könnte. Mit dem «predict» Befehl lassen
+sich unter anderem die Werte auslesen. Folgende Temperaturentwicklung
+wird somit für die nächsten 10 Jahre angegeben:
+
+```{r pred1, echo=TRUE}
+round(predict(city_temps_forecast_year)$mean[1:10], digits=1) 
+```
+
+### Vorhersage der Entwicklung des AQI's
+
+Die nachfolgenden Grafiken zeigen die durch «forecast» erstellten
+Trends, saisonale Schwankungen und übrige Messabweichungen des «Global
+Air Quality Index (AQI)» Datasets. In der Trend Spalte der Grafik ist
+ein klarer Abwärtstrend zu erkennen. Laut diesem Trend hat sich der
+durchschnittliche AQI Wert von 60 auf 40 minimiert. Auch in der
+saisonalen Darstellung ist zu erkennen, dass der AQI im Sommer allgemein
+höher ist als im Winter, dieser aber durchschnittlich mit jedem
+vergangenen Jahr abnimmt.
+
+```{r Forecast2, echo=FALSE, fig.align='center', fig.show="hold", fig.cap="Zerlegung des Temperaturverlaufs der USA in Trend, Saisonalität und übrige Messabweichungen", out.width="46%"}
+autoplot(ddata_aqi) +
+  labs(
+    x="Zeit (in Jahren)",
+    title = "Zerlegung der Luftqualität der USA in Trend, Saisonalität und übrige"
+  )
+ggseasonplot(tsdata_aqi) + 
+  labs(
+    x="Monat", 
+    y="Gemessener AQI", 
+    color="Jahr",
+    title = "Saisonaler verlauf der Luftqualität (USA)"
+  )
+```
+
+Auf der Grafik 10 ist die Vorhersage des AQIs der nächsten zehn Jahre
+abgebildet. Folgende Befehle wurden genutzt, um das entsprechende Model
+und die Grafik zu erstellen:
+
+```{r Forecast4, echo=TRUE, fig.align='center', fig.cap="Vorhersage der Luftqualität (USA) in den nächsten 10 Jahren", out.width="65%"}
+autoplot(aqi_forecast) +
+  labs(
+    x="Zeit (in Jahren)", 
+    y="Gemessener AQI", 
+    title = "Vorhersage der Luftqualität (USA) in den nächsten 10 Jahren"
+  )
+```
+
+Die Vorhersage beschreibt somit, dass sich der AQI Wert in den nächsten
+Jahren vermutlich um ca. 10 verkleinern wird. Durch den «predict» Befehl
+lassen sich auch für dieses Modell die durchschnittlich vorhergesagten
+Werte des AQI's auslesen.
+
+```{r pred2, echo=TRUE}
+round(predict(aqi_forecast)$mean, digits = 1)
+```
+
+## Zusammenhänge zwischen Temperatur & Treibhausgasen
+
+In diesem Kapitel soll nun überprüft werden, ob eine Korrelation
+zwischen der Lufttemperatur und den Anteilen an Treibhausgasen erkennbar
+ist. Hierfür wurde ein neues Dataframe aus den Datasets «Daily
+Temperature of Major Cities» nach Kalifornien gefiltert und «Global Air
+Quality Index (AQI)» mittels inner Join auf die Datums-Variable
+erstellt. Die anteiligen Treibhausgas-Werte wurden hierfür auf
+Tagesbasis als Durchschnitt gerechnet. Durch den Befehl «pairs» konnte
+die nachfolgende Grafik erstellt werden.
+
+```{r Forecast5, echo=FALSE, fig.align='center', fig.cap="Zusammenhänge zwischen Temperatur und Treibhausgasen in Kalifornien", out.width="75%"}
+pairs(new_model_data)
+```
+
+In den oberen 20 Scatterplots werden jeweils die Relationen zwischen den
+Durchschnittswerten der Treibhausgasen und der Temperatur in Kalifornien
+aufgezeigt. Zwischen dem Durchschnitt vom Kohlenstoffmonoxid (CO) und
+dem Stickstoffdioxid (NO2) ist eine positive lineare Korrelation zu
+erkennen. Einen Zusammenhang zwischen den Gasen und der Temperatur hat
+das Autorenteam nicht erkennen können. Die nächste Grafik zeigt die
+Treibhausgas-Werte in Relation zu den Temperaturwerten und bestätigt
+diese Erkenntnis.
+
+```{r Forecast6, echo=FALSE, fig.align='center', fig.cap="Zusammenhang zwischen den Durchschnittstemperaturen und den vier Gasen", out.width="65%"}
+featurePlot(
+  x = new_model_data[ , c("o3_mean", "co_mean", "so2_mean", "no2_mean")], 
+  y = new_model_data$Temp_Mean
+)
+```
+
+Die obenstehende Grafik zeigt nun nur noch die Relation der vier
+Treibhausgase in Bezug zur kalifornischen Durchschnittstemperatur. Aus
+den aggregierten Daten wurde folgendes Model erstellt:
+
+```{r model, echo=TRUE}
+summary(temperature_and_pollution_model)
+```
+
+Obwohl das Model signifikant ist, kann in keinem der Scatterplots eine
+klare Korrelation erkannt werden. Das Model zeigt grundsätzlich einen
+guten P-Value(fit), da dieser unterhalb von 5% liegt, jedoch sagt der
+R-Squared Wert 0.39 aus, dass die Variablen eher nicht für eine
+befriedigende Vorhersage genutzt werden können.
+
+# Resultate und Diskussion
+
+Im Kapitel 3.1 hat das Autorenteam festgestellt, dass trotz teils hohen
+Temperaturschwankungen zwischen den Kontinenten und den Jahren ein klar
+aufsteigender Trend zu erkennen ist. Es werden also weltweit zunehmend
+wärmere Temperaturen gemessen. Durch diese Analyse ist die Frage
+aufgekommen, ob alle Kontinente den gleichen Trend aufweisen. Das
+Autorenteam konnte feststellen, dass der Trend alle Regionen, wenn auch
+nicht überall gleich intensiv, betrifft. Der Nahe Osten zeigt dabei die
+stärkste Entwicklung der Temperaturerwärmungen auf. Um die Resultate der
+Temperaturerwärmung mit der Luftqualität in Zusammenhang zu setzen, hat
+sich das Autorenteam jedoch auf den amerikanischen Kontinent
+beziehungsweise auf die USA fokussiert.
+
+Im Kapitel 3.2 hat das Autorenteam in erster Linie festgestellt, dass
+über die letzten Jahre im Allgemeinen immer mehr Messungen durchgeführt
+wurden. Die Vermutung besteht, dass diese Entwicklung auf die
+verfügbaren technischen Mittel zurückgeführt werden kann.
+
+In einem weiteren Schritt wurde die Luftqualität nach dem AQI
+aufgeschlüsselt. Damit konnte das Autorenteam Vergleiche zwischen den
+Anteilen an verschiedenen Treibhausgasen in den Staaten der USA ziehen.
+Im Allgemeinen zeigen die Ergebnisse auf, dass sich die Luftqualität
+langsam verbessert. Der durchschnittliche AQI ist in stark besiedelten
+Staaten deutlich schlechter als in weniger besiedelten Staaten. Um dies
+zu bestätigen, wurden die Staaten Kalifornien und Maine direkt
+verglichen. Im Code wurden diverse andere Staaten verglichen, die immer
+ähnliche Ergebnisse aufgezeigt haben.
+
+Schlussendlich hat die Autorengruppe versucht einige Vorhersagen zu
+erarbeiten. Zuerst sollte herausgefunden werden, wie sich die weltweiten
+Temperaturen entwickeln werden. Das Modell hat aufgezeigt, dass sich die
+Weltbevölkerung effektiv auf wärmere Zeiten gefasst machen kann. Weiter
+wollte das Autorenteam wissen, ob sich die Luftqualität weiterhin
+verbessern wird. Auch da hat das Modell bestätigt, dass der Trend
+weiterhin positiv sein wird. Im letzten Kapitel der Analyse haben die
+Verfasserinnen und der Verfasser dieser Arbeit versucht einen
+Zusammenhang zwischen der globalen Temperaturerhöhung und den Anteilen
+an Treibhausgasen in der Luft zu finden. Obwohl in der Wissenschaft
+belegt wird, dass die Temperaturerhöhung in der terrestrischen
+Atmosphäre durch die Zunahmen an schädlichen Treibhausgase gefördert
+wird, konnte bei den Analysen in dieser Arbeit kein Zusammenhang
+festgestellt werden. Das Model war allgemein schwierig zu
+interpretieren. Das Autorenteam hatte angenommen, dass eine
+offensichtliche Korrelation ersichtlich wäre.
+
+# Fazit
+
+In der vorliegenden Arbeit hat das Autorenteam anhand der Datenanalyse
+herausgefunden, dass die Temperatur in den nächsten Jahrzehnten stetig
+zunehmen wird. Zur gleichen Zeit wird, gemäss dem Dataset über den AQI,
+die Luftqualität in den ganzen USA besser. Es ist jedoch
+wissenschaftlich erwiesen, dass die schädlichen Treibhausgase diesem
+aufwärts Trend erheblich beisteuern. Das Autorenteam ist sich nicht
+sicher, warum diese Ergebnisse so ausfallen. Der Fehler könnte sowohl
+bei der Auswahl der Daten, im Erstellungsprozess der Grafen oder bei
+deren Interpretation liegen. Da nur sehr spärliche Informationen über
+die Datasets mitgeliefert wurden, könnte da schon die erste Fehlerquelle
+liegen. Mit der stetigen Zunahmen an Messungen über die letzten Jahren,
+wäre es sicherlich spannend diese Arbeit in 10 bis 20 Jahren noch einmal
+durchzuführen, um weitere Erkenntnisse zu erarbeiten.
+
+Das Autorenteam hat festgestellt, dass es schwierig war, die Arbeit
+einzugrenzen und nicht jedes interessante Thema zu verfolgen. Es wäre
+sicherlich spannend eine tiefere Analyse bei der Luftzusammensetzung
+durchzuführen, um zu erfahren, welche weitere Erderwärmungsfaktoren
+vorhanden sind. Weiter könnte ein Dataset mit den Wetterdaten
+ausgewertet werden, um herauszufinden, ob ein Zusammenhang zwischen den
+Temperaturen und dem Wetter besteht. Die Gegenüberstellung der
+«Definierenden Parameter» aus dem AQI Dataset und den Werten des
+Pollution Datasets hätte bestimmt auch interessante Resultate geliefert.
+
+Diese Semesterarbeit hat der Autorengruppe noch stärker verdeutlicht,
+dass sich alle mit dem Klimawandel beschäftigen sollten, da die globale
+Erderwärmung mit einfachen Datasets erwiesen werden kann. Dennoch kennt
+sich die Autorengruppe in diesem Bereich zu wenig aus. Bestimmt wäre es
+wichtig, noch andere Daten in Betracht zu ziehen, um qualifizierte
+Aussagen zu treffen. Dies hätte den Umfang dieser Arbeit jedoch
+gesprengt.
+
+# Literaturverzeichnis {.unnumbered}
+
+\textit{Daily Temperature of Major Cities}. (k.A.). Abgerufen am 03.
+April 2022, von kaggle.com:
+<https://www.kaggle.com/datasets/sudalairajkumar/daily-temperature-of-major-cities>
+\newline \textit{1980-2021 Daily Air Quality Index from the EPA}.
+(k.A.). Abgerufen am 03. April 2022, von kaggle.com:
+<https://www.kaggle.com/datasets/threnjen/40-years-of-air-quality-index-from-the-epa-daily>
+\newline \textit{U.S. Pollution Data}. (k.A.). Abgerufen am 03. April
+2022, von kaggle.com:
+<https://www.kaggle.com/datasets/sogun3/uspollution> \newline
+\textit{Air Quality Index (AQI) Basics}. (k.A.). Abgerufen am 09. Juni
+2022, von airnow.gov: <https://www.airnow.gov/aqi/aqi-basics>
+
+```{=tex}
+\addcontentsline{toc}{section}{Abbildungsverzeichnis}
+\renewcommand{\cftfignumwidth}{6.5em}
+\renewcommand{\cftfigpresnum}{Abbildung }
+\listoffigures
+```
+\newpage
+
+<!---TC:ignore--->
+
+# Selbstständigkeitserklärung {.unnumbered}
+
+Die Länge des vorliegenden Textes ab und inklusive Kapitelüberschrift 1
+bis vor diesen Abschnitt beträgt `r words$num_words` Wörter.
+
+Wir bestätigen, die vorliegende Arbeit selbständig verfasst zu haben.
+Sämtliche Textstellen, die nicht von uns stammen, sind als Zitate
+gekennzeichnet und mit dem genauen Hinweis auf ihre Herkunft versehen.
+Die verwendeten Quellen (gilt auch für Abbildungen, Grafiken u.ä.) sind
+im Literatur- bzw. Quellenverzeichnis aufgeführt. \newline \newline
+\newline \newline Bern, 10.06.2022 \newline \newline \newline \newline
+\newline ![](Signature_Iris.png){#id .class width="120" height="auto"}
+\newline Iris Lüthi \newline \newline ![](Signature_Maja.png){.class
+width="120" height="auto"} \newline Maja Velkova \newline \newline
+\newline ![](Signature_Yannik.png){.class width="120" height="auto"}
+\newline Yannik Zimmermann <!---TC:endignore--->

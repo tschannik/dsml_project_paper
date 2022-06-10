@@ -1,4 +1,49 @@
 # --- preprocess
+# 
+# <!-- Fragen in Zusammenhang mit Unwetter: -->
+#   
+#   <!-- - Hat sich die Anzahl Unwetter (definieren was mit Unwetter gemeint ist) über die fünf Jahre erhöht? -->
+#   
+#   <!-- - Wenn ja, welche Art von Unwetter hat zugenommen? Welche Art von Unwetter hat abgenommen/ist weniger vorgekommen? -->
+#   
+#   <!-- - Besteht eine Korrelation zwischen der erhöhten Anzahl Unwetter (definieren welches Unwetter) und der erhöhten/tieferen Durchschnittstemperaturen? -->
+#   
+#   <!-- - Hat die Frequenz der Unwetter zu- oder abgenommen? - Frage kann noch nach Unwetterart und Ort aufgeteilt werden. -->
+#   
+#   <!-- - Hat die Stärke der Unwetter zu- oder abgenommen? - Frage kann noch nach Unwetterart und Ort aufgeteilt werden. -->
+#   
+#   <!-- - Hat die Wassermenge an Regentagen allgemein zu- oder abgenommen? -->
+#   
+#   <!-- - Haben sich die Wetterereignissen örtlich verschoben? (Zuerst Standard aufzeigen, danach mögliche Änderung) -->
+#   
+#   <!-- - Hat sich die Anzahl Regentagen verändert? -->
+#   
+#   <!-- - Hat sich die Anzahl Sonnentage verändert? -->
+#   
+#   <!-- - usw -->
+#   
+#   <!-- Fragen in Zusammenhang mit Temperaturänderungen: -->
+#   
+#   <!-- - Wurde eine generelle stetige Temperaturänderung über die fünf Jahre gemessen? -->
+#   
+#   <!-- - Wenn ja, wurde es allgemein kälter oder wärmer? -->
+#   
+#   <!-- - Wurde eine allgemeine Temperaturerhöhung über die Jahre 2016-2021 gemessen? -->
+#   
+#   <!-- - Wenn ja, wie hoch und wie rasch hat sich die Temperatur geändert? (Diagramm) -->
+#   
+#   <!-- - In welchem Staat, wurde die stärkste Temperaturänderung gemessen? -->
+#   
+#   <!-- - Wie stark weicht die Temperaturänderung von der natürlichen Erderwärmung ab? -->
+#   
+#   <!-- Fragen in Zusammenhang mit den Gasen: -->
+#   
+#   <!-- - Welches Gas hat allgemein am stärksten zugenommen? -->
+#   
+#   <!-- - Gleiche Frage in Bezug zu den einzelnen Staaten und  Jahren -->
+#   
+#   <!-- - Kann aufgrund der Erhöhung eines bestimmen Gases eine Erhöhung/Verstärkung einer bestimmen Unwetterart erkennt werden? -->
+#   
 
 #pollution_data_2017 <- pollution_data %>% filter(Year == 2017)
 #weather_events_2017 <- weather_events %>% filter(year(ymd_hms(`StartTime(UTC)`)) == 2017)
