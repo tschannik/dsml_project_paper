@@ -13,11 +13,13 @@ header-includes: |
   \fancyfoot{}
   \lfoot{10 Juni 2022}
   \rfoot{Seite \thepage}
+  \usepackage{float}
+  \floatplacement{figure}{H}
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-# source("dsml_project_paper_playground.R", local = knitr::knit_global())
+source("rmd_setup_file.R", local = knitr::knit_global())
 ```
 
 ```{=tex}
@@ -25,7 +27,7 @@ knitr::opts_chunk$set(echo = TRUE)
 \begin{center}
 \begin{tabular}{ l l }
  Studenten & Iris Lüthi, Maja Velkova, Yannik Zimmermann \\ 
- Dozenten & M. Krebs, P. Collovà\\  
+ Dozenten & Prof. Dr. M. Krebs, Prof. Dr. P. Collovà\\  
  Modul & DSML \\
  Semester & 6. Semester\\
  Datum & \date{\today}
@@ -48,40 +50,115 @@ Das Autorenteam hat sich für vier verschiedene Datensets mit ähnlichem Kontext
 
 # Data Source und Datasets
 
-## US Pollution
+Alle Datensets, die im Rahmen dieser Semesterarbeit genutzt werden, wurden auf der Plattform [Kaggle](https://kaggle.com) veröffentlicht. Die Plattform bietet über 50'000 öffentliche Datensets. Diese können dabei direkt in Online-Notebooks analysiert werden. Kaggle bietet nebenbei einige Kurse zur Datenanalyse mithilfe verschiedenster Tools und Programmiersprachen.
 
-## US Weather Events
+## Dataset "Daily Temperature of Major Cities"
 
-## Global Air Quality Index (AQI)
+Das "Daily Temperature of Major Cities" Dataset besteht aus acht Spalten und 2,9 Millionen Zeilen. In der originalen Datenstruktur sind folgende Spalten enthalten:
 
-## Temperature of Major Cities
+-   Region
+-   Country
+-   State
+-   City
+-   Day
+-   Month
+-   Year
+-   AvgTemperature
+
+Mithilfe des folgenden Befehls lässt sich herausfinden, wie viele Zeilen identisch sind. In diesem Dataset sind insgesamt 20'715 identisch und müssen daher vor dem nächsten Schritt gefiltert werden.
+
+``` r
+sum(duplicated(raw_city_temps)) 
+```
+
+Bei der Untersuchung des Datasets stellte sich heraus, dass sich einige der Temperaturwerte unterhalb von -90° Fahrenheit befinden. Aufgrund der unrealistischen Werte werden diese Zeilen für die weitere Analyse entfernt. Des Weiteren befinden sich mögliche Tippfehler in der Datenerhebung, da Temperaturwerte für die Jahre 200 und 201 erfasst wurden. Diese Werte werden ebenfalls gefiltert. Zuletzt wurden die Werte aus dem Jahr 2020 entfernt, da die Datenerfassung für dieses Jahr nicht abgeschlossen wurde. Die Bereinigung wurde durch folgenden Befehl vorgenommen:
+
+``` r
+# Data preprocessing for further analysis
+city_temps = raw_city_temps %>% 
+  # remove duplicates
+  distinct() %>% 
+  # remove temp values below -50f because they seem like default/null values
+  filter(AvgTemperature > -50) %>% 
+  # remove values where year is below 1950 because those are probably typos (200, etc)
+  filter(Year > 1950) %>% 
+  # remove year 2020 because of really low number of observations
+  filter(Year != 2020)
+```
+
+Die Durchschnittstemperatur wird in Fahrenheit angegeben. Für ein besseres Verständnis wurde die Spalte "AvgTemperatureInCelcius" durch folgenden Befehl hinzugefügt:
+
+``` r
+city_temps['AvgTemperatureInCelcius'] = fahrenheit.to.celsius(city_temps$AvgTemperature)
+```
+
+## Dataset "Global Air Quality Index (AQI)"
+
+## Dataset "US Pollution"
 
 # Analyse
+
+## Temperaturverlauf von 1995 - 2020
+
+## Luftqualität und Verteilung der Treibhausgase der USA
+
+## Vorhersagen zur Temperatur & Luftqualität
+
+## Zusammenhänge zwischen Temperatur & Treibhausgasen
+
+```{r diff, echo=TRUE, fig.align='center', fig.cap="Gemessene Durchschnittstemperatur in Grossstädten rund um die Erde", out.width="60%"}
+city_temps %>%
+  group_by(Year) %>%
+  summarize_at(vars(AvgTemperatureInCelsius), list(AvgTemp=mean)) %>%
+  ggplot(aes(Year,AvgTemp)) + 
+  geom_smooth(method = 'loess', formula = 'y ~ x') + 
+  geom_line() +
+  labs(
+    x="Jahr", 
+    y="Durchschnittstemperatur in Celsius", 
+    title = "Gemessene Durchschnittstemperatur in Grossstädten rund um die Erde"
+  ) 
+```
+xtxt
+
 
 # Resultate und Diskussion
 
 # Fazit
 
-\\section\*{Literaturverzeichnis}
+# Literaturverzeichnis {.unnumbered}
 
-\\section\*{Selbstständigkeitserklärung}
+\newpage
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+# Selbstständigkeitserklärung {.unnumbered}
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+Die Länge des vorliegenden Textes ab und inklusive Kapitelüberschrift 1 bis vor diesen Abschnitt beträgt XXXX Wörter.
 
-```{r cars, fig.cap = "Gemessene Durchschnittstemperatur in Grossstädten rund um die Erde", fig.align = 'center', out.width = "25%"}
-# plot
-```
-
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-plot(cars$speed, cars$dist)
-```
+Wir bestätigen, die vorliegende Arbeit selbständig verfasst zu haben. Sämtliche Textstellen, die nicht von uns stammen, sind als Zitate gekennzeichnet und mit dem genauen Hinweis auf ihre Herkunft versehen.
+Die verwendeten Quellen (gilt auch für Abbildungen, Grafiken u.ä.) sind im 
+Literatur- bzw. Quellenverzeichnis aufgeführt.
+\newline
+\newline
+\newline
+\newline
+Bern, 10.06.2022
+\newline
+\newline
+\newline
+\newline
+\newline
+\newline
+Iris Lüthi
+\newline
+\newline
+\newline
+\newline
+Maja Velkova
+\newline
+\newline
+\newline
+\newline
+Yannik Zimmermann
 
 <!-- Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot. -->
 

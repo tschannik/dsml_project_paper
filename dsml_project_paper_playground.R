@@ -46,7 +46,7 @@ library(usmap)
 # How to Forecast https://www.simplilearn.com/tutorials/data-science-tutorial/time-series-forecasting-in-r
 library(forecast)
 library(caret)
-# Used for easy fahrenheit to celcius conversion
+# Used for easy fahrenheit to celsius conversion
 library(weathermetrics)
 
 # ------------------------------------------------------------------------------
@@ -67,7 +67,7 @@ secondary_color = "#D55E00"
 # ------------------
 
 # https://www.kaggle.com/datasets/sobhanmoosavi/us-weather-events
-raw_weather_events <- read_csv("WeatherEvents_Jan2016-Dec2021.csv")
+# raw_weather_events <- read_csv("WeatherEvents_Jan2016-Dec2021.csv")
 # https://www.kaggle.com/datasets/sogun3/uspollution
 raw_pollution_data <- read_csv("pollution_2000_2021.csv")
 # https://www.kaggle.com/datasets/sudalairajkumar/daily-temperature-of-major-cities
@@ -117,10 +117,10 @@ city_temps = raw_city_temps %>%
   # remove year 2020 because of really low number of observations
   filter(Year != 2020)
 
-# Compute additional celcius average temperature column for easy understanding
-city_temps['AvgTemperatureInCelcius'] = fahrenheit.to.celsius(city_temps$AvgTemperature)
+# Compute additional celsius average temperature column for easy understanding
+city_temps['AvgTemperatureInCelsius'] = fahrenheit.to.celsius(city_temps$AvgTemperature)
 
-hist(city_temps$AvgTemperatureInCelcius)
+hist(city_temps$AvgTemperatureInCelsius)
 
 # ------------------
 # Preprocess raw_air_quality_index
@@ -187,37 +187,49 @@ hist(raw_pollution_data$`SO2 Mean`)
 hist(raw_pollution_data$`NO2 Mean`)
 unique(raw_pollution_data$Year)
 
+# Understand logged observations of Pollution measurements
+raw_pollution_data %>%
+  group_by(Year = year(Date)) %>%
+  count() %>%
+  ggplot(aes(Year, n)) + 
+  geom_col()
+
+pollution_data = raw_pollution_data %>% 
+  # remove duplicates
+  distinct() %>%
+  # remove measurements from 2021
+  filter(year(Date) != 2021)
+
 # ------------------
 # Analyse and visualize Temperature in major Cities
 # ------------------
 
-plot = city_temps %>%
+city_temps %>%
   group_by(Year) %>%
-  summarize_at(vars(AvgTemperatureInCelcius), list(AvgTemp=mean)) %>%
+  summarize_at(vars(AvgTemperatureInCelsius), list(AvgTemp=mean)) %>%
   ggplot(aes(Year,AvgTemp)) + 
   geom_smooth(method = 'loess', formula = 'y ~ x') + 
   geom_line() +
-  labs(x="Jahr", y="Durchschnittstemperatur in Celcius", title = "Gemessene Durchschnittstemperatur in Grossstädten rund um die Erde") 
-
-plot
+  labs(x="Jahr", y="Durchschnittstemperatur in Celsius", title = "Gemessene Durchschnittstemperatur in Grossstädten rund um die Erde") 
 
 city_temps %>% 
   group_by(Year, Region) %>%
-  summarise_at(vars(AvgTemperatureInCelcius), list(AvgTemp=mean)) %>%
+  summarise_at(vars(AvgTemperatureInCelsius), list(AvgTemp=mean)) %>%
   ggplot(aes(Year, AvgTemp, group=Region, color=Region)) + 
   geom_line() + 
-  geom_smooth(method=lm, formula = 'y ~ x') +
+  geom_smooth(method='loess', formula = 'y ~ x') +
   scale_colour_manual(values=color_palette) +
-  labs(x="Jahr", y="Durchschnittstemperatur in Celcius", title = "Gemessene Durchschnittstemperatur in Grossstädten gruppiert nach Kontinenten") 
+  labs(x="Jahr", y="Durchschnittstemperatur in Celsius", title = "Gemessene Durchschnittstemperatur in Grossstädten gruppiert nach Kontinenten") 
 
 city_temps %>%
   filter(Region == 'North America') %>%
   group_by(Year) %>%
-  summarise_at(vars(AvgTemperatureInCelcius), list(AvgTemp=mean)) %>%
+  summarise_at(vars(AvgTemperatureInCelsius), list(AvgTemp=mean)) %>%
   ggplot(aes(Year,AvgTemp)) + 
+  geom_line() + 
   geom_smooth(method = 'loess', formula = 'y ~ x') +
   ylim(10, 17) +
-  labs(x="Jahr", y="Durchschnittstemperatur in Celcius", title = "Verlauf der gemessenen Durchschnittstemperatur in Nord Amerika") 
+  labs(x="Jahr", y="Durchschnittstemperatur in Celsius", title = "Verlauf der gemessenen Durchschnittstemperatur in Nord Amerika") 
 
 # ------------------
 # Analyse and visualize AQI
@@ -252,15 +264,8 @@ plot_usmap(data=map_data_aqi_mean, values="AQI_m") +
 # Analyse and visualize Pollution
 # ------------------
 
-# get number of observations by year
-raw_pollution_data %>% 
-  distinct() %>%
-  group_by(Year) %>% count() %>%
-  ggplot() +
-  geom_col(aes(Year, n))
-
 # Filter could be adjusted to show a different state with high population density
-raw_pollution_data %>% 
+pollution_data %>% 
   filter(State == "California") %>% 
   #filter(State == "New Jersey") %>% 
   group_by(Year) %>%
@@ -278,7 +283,7 @@ raw_pollution_data %>%
   ) 
 
 # Filter could be adjusted to show a different state with low population density
-raw_pollution_data %>% 
+pollution_data %>% 
   filter(State == "Maine") %>% 
   #filter(State == "North Dakota") %>%
   group_by(Year) %>%
@@ -306,11 +311,15 @@ city_temps_model_data = city_temps %>%
   filter(Country == 'US') %>% 
   filter(Year != 2020) %>% 
   group_by(Year, Month) %>%
-  summarize_at(vars(AvgTemperatureInCelcius), list(mean=mean))
+  summarize_at(vars(AvgTemperatureInCelsius), list(mean=mean))
 
 tsdata_city_temps <- ts(city_temps_model_data$mean, frequency = 12) 
 ddata_city_temps <- decompose(tsdata_city_temps, "multiplicative")
-autoplot(ddata_city_temps)
+autoplot(ddata_city_temps) + 
+  labs(
+    x="Jahr (Beginn der Messung in 1995)", 
+    title = "Zerlegung des Temperaturverlaufs der USA in Trend, Saisonalität und übrige"
+  ) 
 
 model_from_timeseries_city_temps <- auto.arima(tsdata_city_temps)
 city_temps_forecast <- forecast(model_from_timeseries_city_temps, level=c(95), h=12*10)
@@ -318,7 +327,7 @@ city_temps_forecast <- forecast(model_from_timeseries_city_temps, level=c(95), h
 autoplot(city_temps_forecast) + 
   labs(
     x="Jahr (Beginn der Messung in 1995)", 
-    y="Durchschnittstemperatur in Celcius", 
+    y="Durchschnittstemperatur in Celsius", 
     title = "Prognostizierter Temperaturverlauf der USA für die nächsten 10 Jahre"
   ) 
 
@@ -338,7 +347,7 @@ ggseasonplot(tsdata_city_temps) +
 city_temps_year_ts_raw = city_temps %>% 
   filter(Year != 2020) %>% 
   group_by(Year) %>%
-  summarize_at(vars(AvgTemperatureInCelcius), list(mean=mean))
+  summarize_at(vars(AvgTemperatureInCelsius), list(mean=mean))
 
 tsdata_city_temps_year <- ts(city_temps_year_ts_raw$mean, frequency = 2) 
 ddata_city_temps_year <- decompose(tsdata_city_temps_year, "multiplicative")
@@ -355,7 +364,7 @@ city_temps_forecast_year <- forecast(model_from_timeseries_city_temps_year, leve
 autoplot(city_temps_forecast_year) + 
   labs(
     x="Jahr (Beginn der Messung in 1995)", 
-    y="Durchschnittstemperatur in Celcius", 
+    y="Durchschnittstemperatur in Celsius", 
     title = "Prognostizierter Temperaturverlauf Weltweit für die nächsten 10 Jahre"
   ) 
 
@@ -371,11 +380,23 @@ air_quality_ts_raw = air_quality_index %>%
 tsdata_aqi = ts(air_quality_ts_raw$Mean, frequency = 12)
 
 ddata_aqi = decompose(tsdata_aqi, "multiplicative")
-autoplot(ddata_aqi)
+autoplot(ddata_aqi) +
+  labs(
+    x="Zeit (in Jahren)",
+    title = "Zerlegung der Luftqualität der USA in Trend, Saisonalität und übrige"
+  )
 
 model_from_timeseries_aqi = auto.arima(tsdata_aqi)
 aqi_forecast = forecast(model_from_timeseries_aqi, level = c(95), h=12*10)
 autoplot(aqi_forecast)
+
+ggseasonplot(tsdata_aqi) + 
+  labs(
+    x="Monat", 
+    y="Gemessener AQI", 
+    color="Jahr",
+    title = "Saisonaler verlauf der Luftqualität (USA)"
+  )
 
 # ------------------
 # Model for connection between gas composition and temperature
@@ -383,23 +404,24 @@ autoplot(aqi_forecast)
 filtered_temps = city_temps %>% 
   filter(State=="California") %>% 
   group_by(Year,Month,Day) %>% 
-  summarize_at(vars(AvgTemperatureInCelcius), list(Temp_Mean=mean)) 
+  summarize_at(vars(AvgTemperatureInCelsius), list(Temp_Mean=mean)) 
 
-new_model_data = raw_pollution_data %>% 
+new_model_data = pollution_data %>% 
   filter(State=="California") %>% 
   group_by(Year,Month,Day) %>% 
   summarize_at(vars(`O3 Mean`, `CO Mean`,`NO2 Mean`,`SO2 Mean`), list(Mean=mean)) %>% 
   inner_join(filtered_temps, by=c("Year", "Month", "Day")) %>%
   transmute(
-    Year,
-    Month,
-    Day,
     o3_mean = `O3 Mean_Mean`,
     co_mean = `CO Mean_Mean`,
     so2_mean = `SO2 Mean_Mean`,
     no2_mean = `NO2 Mean_Mean`,
     Temp_Mean
   )
+
+new_model_data$Year = NULL
+new_model_data$Month = NULL
+
 pairs(new_model_data)
 
 featurePlot(
